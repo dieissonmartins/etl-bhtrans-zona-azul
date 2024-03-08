@@ -2,6 +2,7 @@ FROM php:8.1-fpm
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
+    wget \
     git \
     curl \
     libpng-dev \
@@ -24,21 +25,23 @@ RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd \
     && pecl install xdebug \
     && docker-php-ext-enable xdebug
 
-# Get latest Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY composer.sh /tmp/composer.sh
 
+RUN chmod +x /tmp/composer.sh
+
+RUN /tmp/composer.sh && rm /tmp/composer.sh -f
 
 # Set work dir
-WORKDIR /var/www/html
+WORKDIR /var/www
 
 # Copy itens
 COPY . .
 
-# Install project dependencies using Composer
-RUN composer install --no-scripts --no-interaction --prefer-dist
+# Copy the shell script into the container
+COPY install.sh /tmp/install.sh
 
-# Update project dependencies using Composer
-RUN composer update --no-scripts --no-interaction --prefer-dist
+# Grant execute permission to the script
+RUN chmod +x /tmp/install.sh
 
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+# Run the shell script during the build process
+RUN /tmp/install.sh
