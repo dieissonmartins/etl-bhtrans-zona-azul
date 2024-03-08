@@ -1,0 +1,17 @@
+{
+  "name": "dieissonmartins/etl-bhtrans-zona-azul",
+  "description": "ETL para processa dados das planinhas da pagina https://ckan.pbh.gov.br/dataset/estacionamento-rotativo",
+  "authors": [
+    {
+      "name": "Dieisson Martins",
+      "email": "dieisson.martins.santos@gmail.com"
+    }
+  ],
+  "require": {
+  },
+  "autoload": {
+    "psr-4": {
+      "Scripts\\": "scripts/"
+    }
+  }
+}
