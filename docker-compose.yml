@@ -1,0 +1,27 @@
+version: "3"
+
+services:
+
+  app:
+    environment:
+      - DEBUG=1
+    build:
+      args:
+        user: dieisson
+        uid: 1000
+      context: ./
+      dockerfile: Dockerfile
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    image: script
+    container_name: script-app
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+    networks:
+      - kart
+
+networks:
+  kart:
+    driver: bridge
