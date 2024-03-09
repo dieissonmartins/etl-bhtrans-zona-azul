@@ -19,6 +19,11 @@ class DownloadCsvBhTrans extends Script
     private $conn;
 
     /**
+     * @var array
+     */
+    private $imports_cache = [];
+
+    /**
      * @throws Exception
      */
     public function __construct()
@@ -37,7 +42,7 @@ class DownloadCsvBhTrans extends Script
         $path = self::SITE_BH_TRANS_PATH_FILE;
         $final_file = '_estacionamento_rotativo.csv';
 
-        $start = date('Ymd', strtotime('2024-01-01'));
+        $start = date('Ymd', strtotime('2024-03-01'));
         $today = date('Ymd');
 
         $date_aux = $start;
@@ -59,8 +64,23 @@ class DownloadCsvBhTrans extends Script
 
         try {
 
+            $this->importsCache();
+
             foreach ($files as $file) {
-                $data = ['date' => date('Y-m-d'), 'file_name' => $file['file_name'], 'path' => $file['path']];
+                $file_name = $file['file_name'];
+
+                $data = [
+                    'status' => false,
+                    'date' => date('Y-m-d'),
+                    'file_name' => $file_name,
+                    'path' => $file['path']
+                ];
+
+                if (isset($this->imports_cache[$file_name])) {
+                    echo 'file really exist' . PHP_EOL;
+                    continue;
+                }
+
                 $this->saveRow($data);
             }
 
@@ -81,7 +101,7 @@ class DownloadCsvBhTrans extends Script
      */
     private function urlExists($url): bool
     {
-        echo $url . '/\n';
+        echo $url . PHP_EOL;
 
         $client = new Client([
             'headers' => [
@@ -93,35 +113,54 @@ class DownloadCsvBhTrans extends Script
 
         $content = $response->getBody()->getContents();
         if ($content) {
-            echo 'file exist TRUE' . '/\n';
+            echo 'file exist TRUE' . PHP_EOL;
             return true;
         } else {
-            echo 'file exist FALSE' . '/\n';
+            echo 'file exist FALSE' . PHP_EOL;
             return false;
         }
     }
 
     /**
-     * @param array $files
+     * @param array $data
      * @return void
      */
-    private function saveRow(array $files)
+    private function saveRow(array $data)
     {
-        echo 'save item by import' . '/\n';
+        echo 'save item by import' . PHP_EOL;
 
         $query = <<<SQL
         INSERT INTO csv_imports (date, file_name, path)
         VALUES (:date, :file_name, :path)
 SQL;
 
-        foreach ($files as $file) {
-            echo 'file: ' . $file . '/\n';
 
-            $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(':date', $file['date']);
-            $stmt->bindParam(':file_name', $file['file_name']);
-            $stmt->bindParam(':path', $file['path']);
-            $stmt->execute();
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':date', $data['date']);
+        $stmt->bindParam(':file_name', $data['file_name']);
+        $stmt->bindParam(':path', $data['path']);
+        $stmt->execute();
+    }
+
+    private function importsCache()
+    {
+        $query = <<<SQL
+        SELECT a.file_name as 'name'
+        FROM csv_imports a
+        WHERE a.date > :date;
+SQL;
+
+        $date = '2024-03-01';
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':date', $date);
+        $stmt->execute();
+
+        $data = $stmt->fetchAll();
+
+        foreach ($data as $row) {
+            $name = $row['name'];
+            $this->imports_cache[$name] = $name;
         }
     }
 }
