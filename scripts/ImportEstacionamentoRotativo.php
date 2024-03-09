@@ -15,6 +15,16 @@ class ImportEstacionamentoRotativo extends Script
      */
     private $conn;
 
+    const DAYS_LABEL = [
+        'DOMINGO' => 'Sunday',
+        'SEGUNDA' => 'Monday',
+        'TERCA' => 'Tuesday',
+        'QUARTA' => 'Wednesday',
+        'QUINTA' => 'Thursday',
+        'SEXTA' => 'Friday',
+        'SABADO' => 'Saturday'
+    ];
+
     /**
      * @throws Exception
      */
@@ -120,7 +130,7 @@ SQL;
         $aux_data = [];
         foreach ($data as $key => $row) {
 
-            # format colunn time
+            # format time
             $time_permanence = '';
             $time_permanence_aux = $row[3];
             $time_permanence_aux_arr = explode(' ', $time_permanence_aux);
@@ -134,22 +144,48 @@ SQL;
                 }
             }
 
+            # format period
+            $period_label_aux = $row[7];
+            $period_label_aux_arr = explode(' ÀS ', $period_label_aux);
+            $time_period_start = '';
+            if (isset($period_label_aux_arr[0])) {
+                $time_period_start = $period_label_aux_arr[0];
+            }
+            $time_period_end = '';
+            if (isset($period_label_aux_arr[1])) {
+                $time_period_end = $period_label_aux_arr[1];
+            }
+
+            # format day
+            $day_label_aux = $row[8];
+            $day_label_aux_arr = explode(' A ', $day_label_aux);
+            $day_start = '';
+            if (isset($day_label_aux_arr[0])) {
+                $day_start = $day_label_aux_arr[0];
+                $day_start = self::DAYS_LABEL[$day_start];
+            }
+            $day_end = '';
+            if (isset($day_label_aux_arr[1])) {
+                $day_end = $day_label_aux_arr[1];
+                $day_end = self::DAYS_LABEL[$day_end];
+            }
+
             $aux = [
-                'parking_id' => $row[0],
-                'vacancies_physical_count' => $row[1],
-                'vacancies_rotating_count' => $row[2],
+                'parking_id' => (int)$row[0],
+                'vacancies_physical_count' => (int)$row[1],
+                'vacancies_rotating_count' => (int)$row[2],
                 'time_permanence_label' => $row[3],
                 'time_permanence' => $time_permanence,
                 'public_place' => $row[4],
                 'reference' => $row[5],
                 'neighborhood' => $row[6],
                 'period_label' => $row[7],
-                'time_period_start',
-                'time_period_end',
+                'time_period_start' => $time_period_start,
+                'time_period_end' => $time_period_end,
                 'day_label' => $row[8],
-                'day_start',
-                'day_end',
-                'polygon' => $row[9],
+                'day_start' => $day_start,
+                'day_end' => $day_end,
+                'polygon' => $row[9]
             ];
 
 
