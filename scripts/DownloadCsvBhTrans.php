@@ -4,7 +4,6 @@ namespace Scripts;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
-use Sunra\PhpSimple\HtmlDomParser;
 
 class DownloadCsvBhTrans extends Script
 {
