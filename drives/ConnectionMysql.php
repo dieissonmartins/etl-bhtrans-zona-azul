@@ -1,7 +1,8 @@
 <?php
 
-namespace Src\database;
+namespace Drivers;
 
+use Dotenv\Dotenv;
 use PDO;
 use Exception;
 use PDOException;
@@ -15,21 +16,17 @@ class ConnectionMysql
     public static function open(): PDO
     {
 
-        $fileName = ".env";
+        $paths = __DIR__ . '/../';
 
-        if (file_exists(__DIR__ . "/$fileName.ini")) {
-            $db = parse_ini_file(__DIR__ . "/../config/$fileName.ini");
-        } else {
-            throw new Exception("file '$fileName' not fold", 1);
+        $dotenv = Dotenv::createImmutable($paths);
+        $dotenv->load();
 
-        }
-
-        $user = $db['DB_USERNAME'] ?? null;
-        $pass = $db['DB_PASSWORD'] ?? null;
-        $name = $db['DB_DATABASE'] ?? null;
-        $host = $db['DB_HOST'] ?? null;
-        $type = $db['DB_CONNECTION'] ?? null;
-        $port = $db['DB_PORT'] ?? null;
+        $user = $_ENV['DB_USERNAME'];
+        $pass = $_ENV['DB_PASSWORD'];
+        $name = $_ENV['DB_DATABASE'];
+        $host = $_ENV['DB_HOST'];
+        $type = $_ENV['DB_CONNECTION'];
+        $port = $_ENV['DB_PORT'];
 
         $conn = null;
         if ($type == 'mysql') {

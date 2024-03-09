@@ -37,6 +37,8 @@ WORKDIR /var/www
 # Copy itens
 COPY . .
 
+COPY .env .env
+
 # Copy the shell script into the container
 COPY install.sh /tmp/install.sh
 
