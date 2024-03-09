@@ -7,6 +7,7 @@ use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use PDO;
+use PDOException;
 
 class ImportEstacionamentoRotativo extends Script
 {
@@ -18,11 +19,11 @@ class ImportEstacionamentoRotativo extends Script
     const DAYS_LABEL = [
         'DOMINGO' => 'Sunday',
         'SEGUNDA' => 'Monday',
-        'TERCA' => 'Tuesday',
+        'TERÇA' => 'Tuesday',
         'QUARTA' => 'Wednesday',
         'QUINTA' => 'Thursday',
         'SEXTA' => 'Friday',
-        'SABADO' => 'Saturday'
+        'SÁBADO' => 'Saturday'
     ];
 
     /**
@@ -41,12 +42,23 @@ class ImportEstacionamentoRotativo extends Script
     {
         $imports = $this->getPendentImports();
 
-        foreach ($imports as $import) {
-            $data = [];
+        $this->conn->beginTransaction();
 
-            $this->extract($import, $data);
+        try {
 
-            $this->transformData($data);
+            foreach ($imports as $import) {
+                $data = [];
+
+                $this->extract($import, $data);
+                $this->transformData($data);
+                $this->loadData($import, $data);
+            }
+
+            $this->conn->commit();
+
+        } catch (PDOException $exception) {
+            $this->conn->rollBack();
+            echo "Error: " . $exception->getMessage();
         }
 
         return true;
@@ -194,5 +206,62 @@ SQL;
         }
 
         $data = $aux_data;
+    }
+
+    private function loadData(array $import, array $data)
+    {
+        echo 'save items by import' . PHP_EOL;
+
+        $cols = [
+            'csv_import_id',
+            'parking_id',
+            'vacancies_physical_count',
+            'vacancies_rotating_count',
+            'time_permanence_label',
+            'time_permanence',
+            'public_place',
+            'reference',
+            'neighborhood',
+            'period_label',
+            'time_period_start',
+            'time_period_end',
+            'day_label',
+            'day_start',
+            'day_end',
+            'polygon',
+        ];
+
+        $cols_aux = [];
+        foreach ($cols as $col) {
+            $cols_aux[] = $col;
+            #$cols_aux[] = sprintf("'%s'", $col);
+        }
+        $sql_cols = implode(',', $cols_aux);
+
+        $sql_values = [];
+        foreach ($cols as $col) {
+            $sql_values[] = sprintf(':%s', $col);
+        }
+        $sql_values = implode(',', $sql_values);
+
+        $query = <<<SQL
+        INSERT INTO parking_lots ({$sql_cols})
+        VALUES ({$sql_values})
+SQL;
+
+        $stmt = $this->conn->prepare($query);
+        foreach ($data as $row) {
+
+            echo 'save item --' . PHP_EOL;
+
+            $row['csv_import_id'] = $import['id'];
+
+            foreach ($row as $col => $var) {
+                $param = sprintf(':%s', $col);
+                $stmt->bindParam($param, $var);
+            }
+
+            $stmt->execute();
+        }
     }
 }
