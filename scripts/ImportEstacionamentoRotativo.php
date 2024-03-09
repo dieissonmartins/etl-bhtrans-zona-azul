@@ -29,7 +29,9 @@ class ImportEstacionamentoRotativo extends Script
         $imports = $this->getPendentImports();
 
         foreach ($imports as $import) {
+
             $debug = $import;
+
         }
 
         return true;
@@ -45,10 +47,11 @@ class ImportEstacionamentoRotativo extends Script
         $query = <<<SQL
         SELECT a.id     as 'id'
              , a.status as 'status'
+             , a.date   as 'date'
              , a.path   as 'path'
         FROM csv_imports a
-        WHERE a.status = 0
-        ORDER BY date
+        WHERE a.status = :status
+        ORDER BY a.date;
         ;
 SQL;
 
@@ -58,8 +61,6 @@ SQL;
         $stmt->bindParam(':status', $status);
         $stmt->execute();
 
-        $data = $stmt->fetchAll();
-
-        return $data;
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
