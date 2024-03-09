@@ -37,7 +37,7 @@ class DownloadCsvBhTrans extends Script
         $path = self::SITE_BH_TRANS_PATH_FILE;
         $final_file = '_estacionamento_rotativo.csv';
 
-        $start = date('Ymd', strtotime('2024-03-01'));
+        $start = date('Ymd', strtotime('2024-01-01'));
         $today = date('Ymd');
 
         $date_aux = $start;
@@ -81,6 +81,8 @@ class DownloadCsvBhTrans extends Script
      */
     private function urlExists($url): bool
     {
+        echo $url . '/\n';
+
         $client = new Client([
             'headers' => [
                 'User-Agent' => 'insomnia/2023.5.8',
@@ -91,8 +93,10 @@ class DownloadCsvBhTrans extends Script
 
         $content = $response->getBody()->getContents();
         if ($content) {
+            echo 'file exist TRUE' . '/\n';
             return true;
         } else {
+            echo 'file exist FALSE' . '/\n';
             return false;
         }
     }
@@ -103,12 +107,15 @@ class DownloadCsvBhTrans extends Script
      */
     private function saveRow(array $files)
     {
+        echo 'save item by import' . '/\n';
+
         $query = <<<SQL
         INSERT INTO csv_imports (date, file_name, path)
         VALUES (:date, :file_name, :path)
 SQL;
 
         foreach ($files as $file) {
+            echo 'file: ' . $file . '/\n';
 
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(':date', $file['date']);
