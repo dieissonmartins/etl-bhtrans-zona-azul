@@ -54,6 +54,7 @@ class ImportEstacionamentoRotativo extends Script
                 $this->transformData($data);
                 $this->loadData($import, $data);
 
+                $this->updateAllStatus();
                 $this->updateDateProcessedCsvImports($import['id']);
 
                 $this->conn->commit();
@@ -82,12 +83,11 @@ class ImportEstacionamentoRotativo extends Script
              , a.path   as 'path'
         FROM csv_imports a
         WHERE a.status = :status
+          AND date_processed IS NULL
         ORDER BY a.date;
-        ;
 SQL;
 
         $status = 0;
-
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(':status', $status);
         $stmt->execute();
@@ -121,14 +121,11 @@ SQL;
         $file_handle = fopen($temp_file, 'r');
 
         $rows = [];
-        $header = false;
         while (($line = fgets($file_handle)) !== false) {
-            if (!$header) {
-                $header = true;
-                continue;
+            $row = str_getcsv($line,';');
+            if (count($row) >= 2) {
+                #$row = implode(',', $row);
             }
-
-            $row = str_getcsv($line);
             $rows[] = $row;
         }
 
@@ -143,12 +140,31 @@ SQL;
     {
         echo 'transform data items' . PHP_EOL;
 
+        $header = $data[0];
+        foreach ($data as $key => $cols) {
+            $aux = [];
+
+            if ($key === 0) {
+                continue;
+            }
+
+            foreach ($cols as $key2 => $row) {
+                $aux[$header[$key2]] = $row;
+            }
+
+            $data[$key] = $aux;
+        }
+
+        if (isset($data[0])) {
+            unset($data[0]);
+        }
+
         $aux_data = [];
         foreach ($data as $key => $row) {
 
             # format time
             $time_permanence = '';
-            $time_permanence_aux = $row[3];
+            $time_permanence_aux = $row['TEMPO_PERMANENCIA'];
             $time_permanence_aux_arr = explode(' ', $time_permanence_aux);
             if (isset($time_permanence_aux_arr[1])) {
                 $type = $time_permanence_aux_arr[1];
@@ -161,7 +177,7 @@ SQL;
             }
 
             # format period
-            $period_label_aux = $row[7];
+            $period_label_aux = $row['PERIODO_VALIDO_REGRA_OPERACAO'];
             $period_label_aux_arr = explode(' ÀS ', $period_label_aux);
             $time_period_start = '';
             if (isset($period_label_aux_arr[0])) {
@@ -173,7 +189,7 @@ SQL;
             }
 
             # format day
-            $day_label_aux = $row[8];
+            $day_label_aux = $row['DIA_REGRA_OPERACAO'];
             $day_label_aux_arr = explode(' A ', $day_label_aux);
             $day_start = '';
             if (isset($day_label_aux_arr[0])) {
@@ -187,21 +203,21 @@ SQL;
             }
 
             $aux = [
-                'parking_id' => (int)$row[0],
-                'vacancies_physical_count' => (int)$row[1],
-                'vacancies_rotating_count' => (int)$row[2],
-                'time_permanence_label' => $row[3],
+                'parking_id' => (int)$row['ID_ESTACIONAMENTO'],
+                'vacancies_physical_count' => (int)$row['NUMERO_VAGAS_FISICAS'],
+                'vacancies_rotating_count' => (int)$row['NUMERO_VAGAS_ROTATIVAS'],
+                'time_permanence_label' => $row['TEMPO_PERMANENCIA'],
                 'time_permanence' => $time_permanence,
-                'public_place' => $row[4],
-                'reference' => $row[5],
-                'neighborhood' => $row[6],
-                'period_label' => $row[7],
+                'public_place' => $row['LOGRADOURO'],
+                'reference' => $row['REFERENCIA_LOGRADOURO'],
+                'neighborhood' => $row['BAIRRO'],
+                'period_label' => $row['PERIODO_VALIDO_REGRA_OPERACAO'],
                 'time_period_start' => $time_period_start,
                 'time_period_end' => $time_period_end,
-                'day_label' => $row[8],
+                'day_label' => $row['DIA_REGRA_OPERACAO'],
                 'day_start' => $day_start,
                 'day_end' => $day_end,
-                'polygon' => $row[9]
+                'polygon' => $row['GEOMETRIA']
             ];
 
 
@@ -212,6 +228,11 @@ SQL;
         $data = $aux_data;
     }
 
+    /**
+     * @param array $import
+     * @param array $data
+     * @return void
+     */
     private function loadData(array $import, array $data)
     {
         echo 'save items by import' . PHP_EOL;
@@ -282,18 +303,44 @@ SQL;
         }
     }
 
+    /**
+     * @param int $id
+     * @return void
+     */
     private function updateDateProcessedCsvImports(int $id)
     {
-        echo 'get pendent items' . PHP_EOL;
+        echo 'update status item' . PHP_EOL;
+
+        $query = <<<SQL
+            UPDATE csv_imports t
+            SET t.date_processed = CURRENT_DATE
+              , t.status         = :status
+            WHERE t.id = :id;
+SQL;
+
+        $status = 1;
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':status', $status);
+        $stmt->execute();
+    }
+
+    /**
+     * @return void
+     */
+    private function updateAllStatus()
+    {
+        echo 'update all items' . PHP_EOL;
 
         $query = <<<SQL
         UPDATE csv_imports t
-        SET t.date_processed = CURRENT_DATE
-        WHERE t.id = :id;
+        SET t.status = :status
+        WHERE id > 0;
 SQL;
 
+        $status = 0;
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':id', $id);
+        $stmt->bindParam(':status', $status);
         $stmt->execute();
     }
 }
