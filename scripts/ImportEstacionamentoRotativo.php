@@ -42,23 +42,27 @@ class ImportEstacionamentoRotativo extends Script
     {
         $imports = $this->getPendentImports();
 
-        $this->conn->beginTransaction();
 
-        try {
+        foreach ($imports as $import) {
 
-            foreach ($imports as $import) {
+            $this->conn->beginTransaction();
+
+            try {
+
                 $data = [];
-
                 $this->extract($import, $data);
                 $this->transformData($data);
                 $this->loadData($import, $data);
+
+                $this->updateDateProcessedCsvImports($import['id']);
+
+                $this->conn->commit();
+
+            } catch (PDOException $exception) {
+                $this->conn->rollBack();
+                echo "Error: " . $exception->getMessage();
             }
 
-            $this->conn->commit();
-
-        } catch (PDOException $exception) {
-            $this->conn->rollBack();
-            echo "Error: " . $exception->getMessage();
         }
 
         return true;
@@ -252,16 +256,44 @@ SQL;
         $stmt = $this->conn->prepare($query);
         foreach ($data as $row) {
 
-            echo 'save item --' . PHP_EOL;
+            echo 'time: ' . date('Y-m-d H:i:s') . PHP_EOL;
 
             $row['csv_import_id'] = $import['id'];
 
-            foreach ($row as $col => $var) {
-                $param = sprintf(':%s', $col);
-                $stmt->bindParam($param, $var);
-            }
+            $stmt->bindParam(':csv_import_id', $row['csv_import_id']);
+            $stmt->bindParam(':parking_id', $row['parking_id']);
+            $stmt->bindParam(':vacancies_physical_count', $row['vacancies_physical_count']);
+            $stmt->bindParam(':vacancies_rotating_count', $row['vacancies_rotating_count']);
+            $stmt->bindParam(':time_permanence_label', $row['time_permanence_label']);
+            $stmt->bindParam(':time_permanence', $row['time_permanence']);
+            $stmt->bindParam(':public_place', $row['public_place']);
+            $stmt->bindParam(':reference', $row['reference']);
+            $stmt->bindParam(':neighborhood', $row['neighborhood']);
+            $stmt->bindParam(':period_label', $row['period_label']);
+            $stmt->bindParam(':time_period_start', $row['time_period_start']);
+            $stmt->bindParam(':time_period_end', $row['time_period_end']);
+            $stmt->bindParam(':day_label', $row['day_label']);
+            $stmt->bindParam(':day_start', $row['day_start']);
+            $stmt->bindParam(':day_end', $row['day_end']);
+            $stmt->bindParam(':polygon', $row['polygon']);
 
             $stmt->execute();
+
         }
+    }
+
+    private function updateDateProcessedCsvImports(int $id)
+    {
+        echo 'get pendent items' . PHP_EOL;
+
+        $query = <<<SQL
+        UPDATE csv_imports t
+        SET t.date_processed = CURRENT_DATE
+        WHERE t.id = :id;
+SQL;
+
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':id', $id);
+        $stmt->execute();
     }
 }
