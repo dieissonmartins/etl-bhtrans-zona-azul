@@ -19,7 +19,7 @@ class ConnectionMysql
         $envFilePath = __DIR__ . '/../.env';
 
         if (file_exists($envFilePath)) {
-            $dotenv = Dotenv::createImmutable([$envFilePath]);
+            $dotenv = Dotenv::createImmutable([$paths]);
             $dotenv->load();
         }
 
