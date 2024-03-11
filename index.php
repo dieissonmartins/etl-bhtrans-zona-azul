@@ -1,13 +1,21 @@
 <?php
 
-$application = parse_ini_file(__DIR__ . "/.env");
+# $application = parse_ini_file(__DIR__ . "/.env");
 
-require_once 'vendor/autoload.php';
+try {
 
+    require_once 'vendor/autoload.php';
 
-$class = $argv[1];
-$className = "Scripts\\$class";
+    $class = $argv[1];
+    $className = "Scripts\\$class";
 
-$instance = new $className();
+    $instance = new $className();
 
-$instance->runScript();
+    $instance->runScript();
+
+} catch (\Throwable $e) {
+
+    echo "Error loading autoloader: " . $e->getMessage() . PHP_EOL;
+
+    exit(1);
+}
