@@ -4,7 +4,8 @@
 
 try {
 
-    require_once 'vendor/autoload.php';
+    $scriptPath = dirname(__FILE__) . '/../vendor/autoload.php';
+    require_once $scriptPath;
 
     $class = $argv[1];
     $className = "Scripts\\$class";
