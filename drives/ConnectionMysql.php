@@ -15,8 +15,14 @@ class ConnectionMysql
      */
     public static function open(): PDO
     {
-
         $paths = __DIR__ . '/../';
+        $envFilePath = __DIR__ . '/../.env';
+
+        if (file_exists($envFilePath)) {
+            $dotenv = Dotenv::createImmutable([$envFilePath]);
+            $dotenv->load();
+        }
+
 
         $dotenv = Dotenv::createImmutable($paths);
         $dotenv->load();
