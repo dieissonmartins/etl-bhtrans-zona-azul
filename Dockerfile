@@ -32,7 +32,7 @@ RUN chmod +x /tmp/composer.sh
 RUN /tmp/composer.sh && rm /tmp/composer.sh -f
 
 # Set work dir
-WORKDIR /var/www
+WORKDIR /var/www/html
 
 # Copy itens
 COPY . .
