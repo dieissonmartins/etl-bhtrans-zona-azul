@@ -23,10 +23,6 @@ class ConnectionMysql
             $dotenv->load();
         }
 
-
-        $dotenv = Dotenv::createImmutable($paths);
-        $dotenv->load();
-
         $user = $_ENV['DB_USERNAME'];
         $pass = $_ENV['DB_PASSWORD'];
         $name = $_ENV['DB_DATABASE'];
